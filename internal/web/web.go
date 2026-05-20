@@ -19,9 +19,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/justmishka/workshop-bank-ocr-go/internal/formatter"
-	"github.com/justmishka/workshop-bank-ocr-go/internal/parser"
-	"github.com/justmishka/workshop-bank-ocr-go/internal/types"
+	"workshop-bank-ocr-go/internal/formatter"
+	"workshop-bank-ocr-go/internal/parser"
+	"workshop-bank-ocr-go/internal/types"
 )
 
 // ProcessOCR runs the full Story 1-4 pipeline (validate → parse → classify

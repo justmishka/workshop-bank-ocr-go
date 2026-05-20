@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/justmishka/workshop-bank-ocr-go/internal/types"
+	"workshop-bank-ocr-go/internal/types"
 )
 
 // OCR fixtures for whole-line nine-of-a-kind entries.

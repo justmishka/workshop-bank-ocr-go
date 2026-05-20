@@ -3,7 +3,6 @@
 Workshop Product 01 — **Go rebuild** of the original Python version.
 
 **Source kata:** [codingdojo.org/kata/BankOCR](https://codingdojo.org/kata/BankOCR/)
-**Original Python repo:** [justmishka/workshop-bank-ocr](https://github.com/justmishka/workshop-bank-ocr)
 
 ## What it does
 

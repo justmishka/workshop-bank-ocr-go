@@ -24,9 +24,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/justmishka/workshop-bank-ocr-go/internal/checksum"
-	"github.com/justmishka/workshop-bank-ocr-go/internal/parser"
-	"github.com/justmishka/workshop-bank-ocr-go/internal/types"
+	"workshop-bank-ocr-go/internal/checksum"
+	"workshop-bank-ocr-go/internal/parser"
+	"workshop-bank-ocr-go/internal/types"
 )
 
 // CorrectAccount attempts to repair an ERR or ILL account number.

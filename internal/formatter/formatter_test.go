@@ -3,7 +3,7 @@ package formatter
 import (
 	"testing"
 
-	"github.com/justmishka/workshop-bank-ocr-go/internal/types"
+	"workshop-bank-ocr-go/internal/types"
 )
 
 // --- ClassifyAccount ---------------------------------------------------------

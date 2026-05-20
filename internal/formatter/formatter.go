@@ -20,10 +20,10 @@ package formatter
 import (
 	"strings"
 
-	"github.com/justmishka/workshop-bank-ocr-go/internal/checksum"
-	"github.com/justmishka/workshop-bank-ocr-go/internal/corrector"
-	"github.com/justmishka/workshop-bank-ocr-go/internal/parser"
-	"github.com/justmishka/workshop-bank-ocr-go/internal/types"
+	"workshop-bank-ocr-go/internal/checksum"
+	"workshop-bank-ocr-go/internal/corrector"
+	"workshop-bank-ocr-go/internal/parser"
+	"workshop-bank-ocr-go/internal/types"
 )
 
 // ClassifyAccount classifies a single account number and returns the formatted

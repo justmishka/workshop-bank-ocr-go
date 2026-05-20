@@ -82,7 +82,7 @@ For `ERR` or `ILL` accounts, try modifying exactly one pipe or underscore:
 
 ### Product Vision (Clara)
 
-This is a classic parsing + validation kata. The user is a bank employee (or Miška for demo purposes) who receives OCR output files and needs reliable account number extraction. The product must handle real-world messiness: illegible characters and scanner errors.
+This is a classic parsing + validation kata. The user is a bank employee who receives OCR output files and needs reliable account number extraction. The product must handle real-world messiness: illegible characters and scanner errors.
 
 Four user stories, progressive complexity:
 1. Parse OCR → numbers (core)
@@ -90,7 +90,7 @@ Four user stories, progressive complexity:
 3. Format output with status (reporting)
 4. Error correction (robustness)
 
-**User:** Miška (she will use and test the software at Sprint Review).
+**User:** the workshop facilitator (will use and test the software at Sprint Review).
 
 ### Architecture (Nova)
 
