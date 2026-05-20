@@ -1,0 +1,7 @@
+bank-ocr
+bank-ocr-web
+*.exe
+*.test
+*.out
+coverage.out
+.DS_Store

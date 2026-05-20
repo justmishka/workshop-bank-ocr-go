@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank OCR</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: #7eb8da;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 0.75rem;
+            margin-bottom: 2rem;
+            letter-spacing: 0.15em;
+        }
+        .container {
+            width: 100%;
+            max-width: 720px;
+        }
+        .input-section {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: block;
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #12121a;
+            border: 1px solid #2a2a3a;
+            border-radius: 6px;
+            color: #c0ffc0;
+            font-family: inherit;
+            font-size: 0.85rem;
+            padding: 1rem;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        textarea:focus {
+            border-color: #7eb8da;
+        }
+        textarea::placeholder {
+            color: #444;
+        }
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        button {
+            padding: 0.6rem 1.5rem;
+            border: 1px solid #2a2a3a;
+            border-radius: 4px;
+            background: #1a1a2a;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #7eb8da;
+            color: #0a0a0f;
+            border-color: #7eb8da;
+        }
+        button.secondary {
+            color: #888;
+        }
+        button.secondary:hover {
+            background: #333;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+        .results {
+            display: none;
+        }
+        .results.visible {
+            display: block;
+        }
+        .results-header {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+        }
+        .account-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1rem;
+            margin-bottom: 0.25rem;
+            border-radius: 4px;
+            background: #12121a;
+            border-left: 3px solid transparent;
+        }
+        .account-row.ok {
+            border-left-color: #4ade80;
+        }
+        .account-row.err {
+            border-left-color: #f87171;
+            background: #1a1215;
+        }
+        .account-row.ill {
+            border-left-color: #fbbf24;
+            background: #1a1812;
+        }
+        .account-number {
+            font-size: 1.1rem;
+            letter-spacing: 0.2em;
+        }
+        .account-number .question {
+            color: #fbbf24;
+        }
+        .status-badge {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            padding: 0.2rem 0.6rem;
+            border-radius: 3px;
+        }
+        .status-badge.ok {
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+        }
+        .status-badge.err {
+            color: #f87171;
+            background: rgba(248, 113, 113, 0.1);
+        }
+        .status-badge.ill {
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+        }
+        .summary {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: #12121a;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #888;
+            display: flex;
+            gap: 1.5rem;
+        }
+        .summary span { color: #ccc; }
+        .upload-area {
+            margin-top: 0.75rem;
+            font-size: 0.7rem;
+            color: #555;
+        }
+        .upload-area input[type="file"] {
+            display: none;
+        }
+        .upload-area label {
+            cursor: pointer;
+            color: #7eb8da;
+            text-decoration: underline;
+            font-size: 0.7rem;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+        .footer {
+            margin-top: 3rem;
+            font-size: 0.65rem;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bank OCR</h1>
+    <p class="subtitle">Account Number Scanner</p>
+
+    <div class="container">
+        <div class="input-section">
+            <label for="ocr-input">Paste OCR output</label>
+            <textarea id="ocr-input" placeholder="Paste your OCR text here...&#10;&#10; _  _  _  _  _  _  _  _  _ &#10;| || || || || || || || || |&#10;|_||_||_||_||_||_||_||_||_|"></textarea>
+            <div class="upload-area">
+                or <label for="file-upload">upload a file</label>
+                <input type="file" id="file-upload" accept=".txt,.ocr">
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="parse-btn">Parse</button>
+            <button id="sample-btn" class="secondary">Load Sample</button>
+            <button id="clear-btn" class="secondary">Clear</button>
+        </div>
+
+        <div class="results" id="results">
+            <div class="results-header">Results</div>
+            <div id="results-list"></div>
+            <div class="summary" id="summary"></div>
+        </div>
+    </div>
+
+    <div class="footer">Workshop Product 01 &mdash; The AI Dev Team</div>
+
+    <script>
+        const textarea = document.getElementById('ocr-input');
+        const resultsDiv = document.getElementById('results');
+        const resultsList = document.getElementById('results-list');
+        const summaryDiv = document.getElementById('summary');
+
+        const SAMPLE = ` _  _  _  _  _  _  _  _  _
+| || || || || || || || || |
+|_||_||_||_||_||_||_||_||_|
+
+    _  _     _  _  _  _  _
+  | _| _||_||_ |_   ||_||_|
+  ||_  _|  | _||_|  ||_| _|
+
+
+  |  |  |  |  |  |  |  |  |
+  |  |  |  |  |  |  |  |  |
+
+ _  _  _  _  _  _  _  _  _
+|_||_||_||_||_||_||_||_||_|
+|_||_||_||_||_||_||_||_||_|
+
+`;
+
+        document.getElementById('parse-btn').addEventListener('click', async () => {
+            const text = textarea.value;
+            if (!text.trim()) {
+                showError('Please paste OCR text or upload a file.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/parse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await res.json();
+                if (data.errors && data.errors.length > 0) {
+                    showError(data.errors.join('\n'));
+                } else {
+                    renderResults(data.accounts);
+                }
+            } catch (err) {
+                showError('Error connecting to server.');
+            }
+        });
+
+        document.getElementById('sample-btn').addEventListener('click', () => {
+            textarea.value = SAMPLE;
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            textarea.value = '';
+            resultsDiv.classList.remove('visible');
+        });
+
+        document.getElementById('file-upload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!file.name.match(/\.(txt|ocr)$/i)) {
+                showError('Please upload a .txt or .ocr file.');
+                e.target.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (ev) => { textarea.value = ev.target.result; };
+            reader.readAsText(file);
+        });
+
+        function showError(message) {
+            resultsList.innerHTML = `<div class="account-row err" style="border-left-color:#f87171">
+                <span style="color:#f87171">${message.replace(/\n/g, '<br>')}</span>
+            </div>`;
+            summaryDiv.innerHTML = '';
+            resultsDiv.classList.add('visible');
+        }
+
+        function renderResults(data) {
+            let html = '';
+            let ok = 0, err = 0, ill = 0;
+
+            data.forEach(item => {
+                const cls = item.status.toLowerCase();
+                const accountHtml = item.account.split('').map(c =>
+                    c === '?' ? `<span class="question">${c}</span>` : c
+                ).join('');
+
+                html += `<div class="account-row ${cls}">
+                    <span class="account-number">${accountHtml}</span>
+                    <span class="status-badge ${cls}">${item.status}</span>
+                </div>`;
+
+                if (item.status === 'OK') ok++;
+                else if (item.status === 'ERR') err++;
+                else ill++;
+            });
+
+            resultsList.innerHTML = html;
+            summaryDiv.innerHTML = `
+                <span>${data.length} accounts</span>
+                <span style="color:#4ade80">${ok} valid</span>
+                ${err ? `<span style="color:#f87171">${err} errors</span>` : ''}
+                ${ill ? `<span style="color:#fbbf24">${ill} illegible</span>` : ''}
+            `;
+            resultsDiv.classList.add('visible');
+        }
+    </script>
+</body>
+</html>
