@@ -1,20 +1,27 @@
-// Package formatter combines parser + checksum into status-annotated output.
-//
-// It is the top-level pipeline for User Story 3: take raw OCR file content,
-// parse it into account strings, validate each, and emit one line per account
-// with an optional status marker.
+// Package formatter is the top-level pipeline that turns raw OCR file content
+// into status-annotated output. It composes parser → checksum → corrector
+// (Story 4) into a single ProcessAll function and offers a CLI-friendly
+// FormatOutput wrapper for one-line-per-account text.
 //
 // Output format (one account per line):
 //
-//	"123456789"     — valid account, no marker
-//	"664371495 ERR" — well-formed but invalid checksum
-//	"86110??36 ILL" — contains at least one illegible ('?') digit
+//	"123456789"                       — valid account, no marker
+//	"664371495 ERR"                   — well-formed but invalid checksum
+//	"86110??36 ILL"                   — contains at least one illegible ('?') digit
+//	"711111111"                       — was ERR / ILL but corrected to a unique valid number
+//	"888888888 AMB ['888886888', …]"  — multiple valid corrections; original unchanged
+//
+// The corrector runs only on accounts that need it (Status ERR or ILL after
+// classification), so valid accounts pass through unchanged at zero extra
+// cost. This is the wiring the Python reference shipped without — the Go
+// rebuild closes that gap so Story 4 affects end-user output.
 package formatter
 
 import (
 	"strings"
 
 	"github.com/justmishka/workshop-bank-ocr-go/internal/checksum"
+	"github.com/justmishka/workshop-bank-ocr-go/internal/corrector"
 	"github.com/justmishka/workshop-bank-ocr-go/internal/parser"
 	"github.com/justmishka/workshop-bank-ocr-go/internal/types"
 )
@@ -56,19 +63,66 @@ func ClassifyToAccount(number string) types.Account {
 	return types.Account{Number: number, Status: types.StatusOK}
 }
 
-// FormatOutput parses an OCR file's content and produces formatted output for
-// every account it contains, one per line, joined with '\n'.
+// ProcessAll is the full Story 1-4 pipeline: parse the OCR content, classify
+// each account, and attempt single-character correction for accounts that
+// land in ERR or ILL. Valid accounts pass through unchanged.
 //
-// Empty input produces an empty string (no trailing newline).
+// The returned slice has one Account per input entry, in input order. Empty
+// input returns an empty slice.
+func ProcessAll(ocrContent string) []types.Account {
+	entries := parser.ParseEntries(ocrContent)
+	if len(entries) == 0 {
+		return []types.Account{}
+	}
+
+	out := make([]types.Account, len(entries))
+	for i, e := range entries {
+		base := ClassifyToAccount(e.Number)
+		if base.Status == types.StatusOK {
+			out[i] = base
+			continue
+		}
+		// ERR or ILL: ask the corrector. It returns OK with a replacement
+		// Number if exactly one valid correction exists, AMB with sorted
+		// alternatives if more than one, or the original ERR/ILL if none.
+		out[i] = corrector.CorrectAccount(e.Number, e.Lines[:])
+	}
+	return out
+}
+
+// FormatOutput is the CLI-facing wrapper: ProcessAll + one line per account
+// joined with '\n'. Empty input produces an empty string (no trailing
+// newline).
 func FormatOutput(ocrContent string) string {
-	accounts := parser.ParseFile(ocrContent)
+	accounts := ProcessAll(ocrContent)
 	if len(accounts) == 0 {
 		return ""
 	}
 
 	lines := make([]string, len(accounts))
-	for i, account := range accounts {
-		lines[i] = ClassifyAccount(account)
+	for i, acc := range accounts {
+		lines[i] = formatLine(acc)
 	}
 	return strings.Join(lines, "\n")
+}
+
+// formatLine renders one Account as a single output line.
+//
+//	OK  → just the number
+//	ERR → "<number> ERR"
+//	ILL → "<number> ILL"
+//	AMB → "<number> AMB ['alt1', 'alt2', …]" with single-quoted, sorted alts
+func formatLine(a types.Account) string {
+	switch a.Status {
+	case types.StatusOK:
+		return a.Number
+	case types.StatusAMB:
+		quoted := make([]string, len(a.Alternatives))
+		for i, alt := range a.Alternatives {
+			quoted[i] = "'" + alt + "'"
+		}
+		return a.Number + " AMB [" + strings.Join(quoted, ", ") + "]"
+	default: // ERR, ILL, or anything unexpected — use the status marker.
+		return a.Number + " " + a.Status.String()
+	}
 }

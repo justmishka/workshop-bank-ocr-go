@@ -85,18 +85,17 @@ func TestCorrectAccount(t *testing.T) {
 		minAlternatives int
 	}{
 		{
-			name:       "valid account with no single-edit alternatives stays put",
+			// 000000000 has a valid checksum already. The corrector contract
+			// is "find a DIFFERENT valid 1-edit account" — with none, it
+			// falls through to statusFromAccount, which has no '?' rule and
+			// therefore returns ERR. The pipeline never calls the corrector
+			// on already-valid accounts, so this branch documents defensive
+			// behaviour, not happy-path output.
+			name:       "already-valid account with no different 1-edit alt falls through to ERR",
 			account:    "000000000",
 			lines:      linesAllZeros,
-			wantStatus: types.StatusOK,
+			wantStatus: types.StatusERR,
 			wantNumber: "000000000",
-			// Note: 000000000 has a valid checksum already. We only return OK
-			// when a single ALTERNATIVE is found. With none, we'd normally
-			// return ERR — but 000000000 IS valid. So in practice the caller
-			// (parser/validator pipeline) only routes ERR/ILL accounts here.
-			// This case exercises the "no alternative found" branch — we
-			// expect 000000000 to be returned with statusFromAccount = ERR
-			// because there is no '?'. Adjusted assertion below.
 		},
 		{
 			name:       "ILL account that stays ILL — all blank, no corrections possible",
@@ -173,18 +172,6 @@ func TestCorrectAccount(t *testing.T) {
 				}
 				if got.Status == types.StatusAMB && len(got.Alternatives) < 2 {
 					t.Errorf("AMB result should have ≥2 alternatives, got %d", len(got.Alternatives))
-				}
-				return
-			}
-
-			// Special-cased assertion: 000000000 — already valid, but corrector
-			// found no DIFFERENT valid alternative, so it falls through to ERR.
-			if tt.name == "valid account with no single-edit alternatives stays put" {
-				if got.Status != types.StatusERR {
-					t.Fatalf("expected ERR (no different valid alt found), got %s", got.Status)
-				}
-				if got.Number != "000000000" {
-					t.Errorf("expected number 000000000, got %q", got.Number)
 				}
 				return
 			}

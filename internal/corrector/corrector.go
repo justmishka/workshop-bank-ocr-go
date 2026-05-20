@@ -25,27 +25,9 @@ import (
 	"strings"
 
 	"github.com/justmishka/workshop-bank-ocr-go/internal/checksum"
+	"github.com/justmishka/workshop-bank-ocr-go/internal/parser"
 	"github.com/justmishka/workshop-bank-ocr-go/internal/types"
 )
-
-// entryWidth is the canonical width of an OCR entry line (9 digits x 3 chars).
-const entryWidth = 27
-
-// digitPatterns maps a 9-character (top+mid+bot) pattern string to its digit
-// rune. This is duplicated from the parser package deliberately — the table
-// is tiny, immutable, and keeping it local avoids a circular API surface.
-var digitPatterns = map[string]rune{
-	" _ " + "| |" + "|_|": '0',
-	"   " + "  |" + "  |": '1',
-	" _ " + " _|" + "|_ ": '2',
-	" _ " + " _|" + " _|": '3',
-	"   " + "|_|" + "  |": '4',
-	" _ " + "|_ " + " _|": '5',
-	" _ " + "|_ " + "|_|": '6',
-	" _ " + "  |" + "  |": '7',
-	" _ " + "|_|" + "|_|": '8',
-	" _ " + "|_|" + " _|": '9',
-}
 
 // CorrectAccount attempts to repair an ERR or ILL account number.
 //
@@ -70,9 +52,9 @@ func CorrectAccount(account string, entryLines []string) types.Account {
 		}
 	}
 
-	top := padRight(entryLines[0], entryWidth)
-	mid := padRight(entryLines[1], entryWidth)
-	bot := padRight(entryLines[2], entryWidth)
+	top := padRight(entryLines[0], parser.EntryWidth)
+	mid := padRight(entryLines[1], parser.EntryWidth)
+	bot := padRight(entryLines[2], parser.EntryWidth)
 
 	// Track alternatives in insertion order via a slice + dedup set so the
 	// final sort.Strings is deterministic regardless of map iteration order.
@@ -85,7 +67,7 @@ func CorrectAccount(account string, entryLines []string) types.Account {
 		originalPattern := top[start:end] + mid[start:end] + bot[start:end]
 
 		for _, variant := range generateVariants(originalPattern) {
-			digit, ok := digitPatterns[variant]
+			digit, ok := parser.DigitPatterns[variant]
 			if !ok {
 				continue
 			}

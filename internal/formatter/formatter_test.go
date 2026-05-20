@@ -129,7 +129,11 @@ func TestFormatOutput(t *testing.T) {
 			want: "123456789",
 		},
 		{
-			name: "mixed entries: valid then invalid",
+			// With Story 4 wired into the pipeline, "111111111" (which has
+			// an invalid checksum) is uniquely correctable to "711111111"
+			// via a single pipe/space edit, so FormatOutput emits the
+			// corrected number with no marker — matching the kata spec.
+			name: "mixed entries: valid then ERR that gets corrected",
 			content: " _  _  _  _  _  _  _  _  _ \n" +
 				"| || || || || || || || || |\n" +
 				"|_||_||_||_||_||_||_||_||_|\n" +
@@ -138,7 +142,7 @@ func TestFormatOutput(t *testing.T) {
 				"  |  |  |  |  |  |  |  |  |\n" +
 				"  |  |  |  |  |  |  |  |  |\n" +
 				"\n",
-			want: "000000000\n111111111 ERR",
+			want: "000000000\n711111111",
 		},
 		{
 			name:    "empty input returns empty string",

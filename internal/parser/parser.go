@@ -15,12 +15,18 @@ import (
 // ErrShortEntry is returned by ParseEntry when fewer than 3 lines are supplied.
 var ErrShortEntry = errors.New("entry must have at least 3 lines")
 
-// entryWidth is the canonical width of an OCR entry line (9 digits x 3 chars).
-const entryWidth = 27
+// EntryWidth is the canonical width of an OCR entry line (9 digits × 3 chars).
+//
+// Exported so other packages (corrector, tests, fixtures) can pad / slice
+// against the same constant instead of redeclaring it and risking drift.
+const EntryWidth = 27
 
-// digitPatterns maps a 9-character concatenation of (top + mid + bot) to its
-// digit rune. The string concatenation matches the Python reference exactly.
-var digitPatterns = map[string]rune{
+// DigitPatterns maps a 9-character concatenation of (top + mid + bot) to its
+// digit rune. This is the canonical OCR alphabet for the whole product —
+// every package that needs to recognise a glyph depends on this single
+// table. Exported deliberately so the corrector (and any future glyph
+// consumer) can share the same source of truth without copy-paste drift.
+var DigitPatterns = map[string]rune{
 	" _ " + "| |" + "|_|": '0',
 	"   " + "  |" + "  |": '1',
 	" _ " + " _|" + "|_ ": '2',
@@ -38,7 +44,7 @@ var digitPatterns = map[string]rune{
 // the rune '?'.
 func ParseDigit(top, mid, bot string) rune {
 	pattern := top + mid + bot
-	if r, ok := digitPatterns[pattern]; ok {
+	if r, ok := DigitPatterns[pattern]; ok {
 		return r
 	}
 	return '?'
@@ -55,9 +61,9 @@ func ParseEntry(lines []string) (string, error) {
 		return "", fmt.Errorf("%w: got %d", ErrShortEntry, len(lines))
 	}
 
-	top := padRight(lines[0], entryWidth)
-	mid := padRight(lines[1], entryWidth)
-	bot := padRight(lines[2], entryWidth)
+	top := padRight(lines[0], EntryWidth)
+	mid := padRight(lines[1], EntryWidth)
+	bot := padRight(lines[2], EntryWidth)
 
 	var b strings.Builder
 	b.Grow(9)
@@ -78,8 +84,34 @@ func ParseEntry(lines []string) (string, error) {
 // A trailing newline (which produces a trailing empty element after splitting)
 // is tolerated. An empty or whitespace-only input returns an empty slice.
 func ParseFile(content string) []string {
+	entries := ParseEntries(content)
+	accounts := make([]string, len(entries))
+	for i, e := range entries {
+		accounts[i] = e.Number
+	}
+	return accounts
+}
+
+// Entry is one parsed OCR entry carrying both the decoded account number and
+// the three raw OCR lines that produced it. The Lines are right-padded to
+// EntryWidth before being stored so consumers (the corrector, in particular)
+// can index them by digit position without re-padding.
+type Entry struct {
+	// Number is the 9-character account string ('?' for unrecognised digits).
+	Number string
+	// Lines is the three OCR lines (top, mid, bot), each padded to EntryWidth.
+	Lines [3]string
+}
+
+// ParseEntries parses a full OCR file and returns one Entry per account,
+// preserving the raw OCR lines alongside the decoded number. This is the
+// richer counterpart to ParseFile and is what the correction pipeline uses
+// to map an ERR/ILL account back to the 3×3 glyph grid that produced it.
+//
+// Grouping rules and trailing-newline tolerance match ParseFile.
+func ParseEntries(content string) []Entry {
 	if strings.TrimSpace(content) == "" {
-		return []string{}
+		return []Entry{}
 	}
 
 	lines := strings.Split(content, "\n")
@@ -88,17 +120,24 @@ func ParseFile(content string) []string {
 		lines = lines[:len(lines)-1]
 	}
 
-	accounts := make([]string, 0, len(lines)/4+1)
+	entries := make([]Entry, 0, len(lines)/4+1)
 	for i := 0; i+2 < len(lines); i += 4 {
-		account, err := ParseEntry(lines[i : i+3])
+		group := lines[i : i+3]
+		number, err := ParseEntry(group)
 		if err != nil {
-			// Defensive: a 3-line slice cannot trigger ErrShortEntry, so this
-			// branch is unreachable in practice. Skip and continue.
+			// Defensive: a 3-line slice cannot trigger ErrShortEntry.
 			continue
 		}
-		accounts = append(accounts, account)
+		entries = append(entries, Entry{
+			Number: number,
+			Lines: [3]string{
+				padRight(group[0], EntryWidth),
+				padRight(group[1], EntryWidth),
+				padRight(group[2], EntryWidth),
+			},
+		})
 	}
-	return accounts
+	return entries
 }
 
 // LineError describes a validation problem found in OCR input. LineNumber is
